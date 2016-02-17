@@ -6,6 +6,7 @@
 
 #include <nss.h>
 #include <pwd.h>
+#include <grp.h>
 
 #define SLOT_COUNT (10000)
 #define SLOT_UID_LO (20000)
@@ -13,8 +14,13 @@
 
 #define SLOT_OK_UID(uid) ((SLOT_UID_LO <= uid) && (uid < SLOT_UID_HI))
 #define SLOT_OK(slot) ((0 <= slot) && (slot < SLOT_COUNT))
+#define SLOT_OK_NAME(name) (strlen(name) == 5 && name[0] == 's' && isdigit(name[1]) && isdigit(name[2]) && isdigit(name[3]) && isdigit(name[4]))
 #define SLOT_TO_UID(slot) (SLOT_UID_LO + slot)
 #define SLOT_OF_UID(uid) (uid - SLOT_UID_LO)
+
+////////////
+// PASSWD //
+////////////
 
 enum nss_status fill_passwd(struct passwd* pwbuf, char* buf, size_t buflen, struct passwd entry, int* errnop) {
     int name_length = strlen(entry.pw_name) + 1;
@@ -82,14 +88,60 @@ enum nss_status _nss_slots_getpwuid_r(uid_t uid, struct passwd *pwbuf, char *buf
 }
 
 enum nss_status _nss_slots_getpwnam_r(const char *name, struct passwd *pwbuf, char *buf, size_t buflen, int *errnop) {
-    if (strlen(name) != 5
-            || name[0] != 's'
-            || !isdigit(name[1])
-            || !isdigit(name[2])
-            || !isdigit(name[3])
-            || !isdigit(name[4])) {
+    if (!SLOT_OK_NAME(name)) {
         return NSS_STATUS_NOTFOUND;
     }
     int slot_id = strtol(name + 1, NULL, 10);
     return slots_fill_passwd(pwbuf, buf, buflen, slot_id, errnop);
+}
+
+///////////
+// GROUP //
+///////////
+
+enum nss_status slots_fill_group(struct group *grbuf, char *buf, size_t buflen, int slot_id, int *errnop) {
+
+    if (!SLOT_OK(slot_id)) {
+        return NSS_STATUS_NOTFOUND;
+    }
+
+    int name_length = 6;
+    int pw_length = 2;
+    int mem_length = sizeof(char*);
+    int total_length = name_length + pw_length + mem_length;
+
+    if (buflen < total_length) {
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    }
+
+    grbuf->gr_gid = SLOT_TO_UID(slot_id);
+
+    sprintf(buf, "s%04d", slot_id);
+    grbuf->gr_name = buf;
+    buf += name_length;
+
+    strcpy(buf, "x");
+    grbuf->gr_passwd = buf;
+    buf += pw_length;
+
+    *((char**)buf) = NULL;
+    grbuf->gr_mem = (char**)buf;
+
+    return NSS_STATUS_SUCCESS;
+}
+
+enum nss_status _nss_slots_getgrgid_r(gid_t gid, struct group *grbuf, char *buf, size_t buflen, int *errnop) {
+    if (!SLOT_OK_UID(gid)) {
+        return NSS_STATUS_NOTFOUND;
+    }
+    return slots_fill_group(grbuf, buf, buflen, SLOT_OF_UID(gid), errnop);
+}
+
+enum nss_status _nss_slots_getgrnam_r(const char *name, struct group *grbuf, char *buf, size_t buflen, int *errnop) {
+    if (!SLOT_OK_NAME(name)) {
+        return NSS_STATUS_NOTFOUND;
+    }
+    int slot_id = strtol(name + 1, NULL, 10);
+    return slots_fill_group(grbuf, buf, buflen, slot_id, errnop);
 }
