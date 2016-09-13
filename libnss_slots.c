@@ -64,18 +64,21 @@ enum nss_status fill_passwd(struct passwd* pwbuf, char* buf, size_t buflen, stru
 enum nss_status slots_fill_passwd(struct passwd *pwbuf, char *buf, size_t buflen, int slot_id, int *errnop) {
     struct passwd entry;
     char name_buf[10];
+    char dir_buf[100];
 
     if (!SLOT_OK(slot_id)) {
         return NSS_STATUS_NOTFOUND;
     }
 
     sprintf(name_buf, "s%04d", slot_id);
+    sprintf(dir_buf, "/srv/%04d/", slot_id);
+
     entry.pw_uid = SLOT_TO_UID(slot_id);
     entry.pw_gid = SLOT_TO_UID(slot_id);
     entry.pw_name = name_buf;
     entry.pw_passwd = "x";
     entry.pw_gecos = "";
-    entry.pw_dir = "/";
+    entry.pw_dir = dir_buf;;
     entry.pw_shell = "/bin/bash";
     return fill_passwd(pwbuf, buf, buflen, entry, errnop);
 }
