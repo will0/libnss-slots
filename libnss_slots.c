@@ -76,7 +76,7 @@ enum nss_status slots_fill_passwd(struct passwd *pwbuf, char *buf, size_t buflen
     entry.pw_passwd = "x";
     entry.pw_gecos = "";
     entry.pw_dir = "/";
-    entry.pw_shell = "/bin/false";
+    entry.pw_shell = "/bin/bash";
     return fill_passwd(pwbuf, buf, buflen, entry, errnop);
 }
 
