@@ -8,13 +8,21 @@
 #include <pwd.h>
 #include <grp.h>
 
-#define SLOT_COUNT (10000)
-#define SLOT_UID_LO (20000)
-#define SLOT_UID_HI (SLOT_UID_LO + 10000)
+#define SLOT_COUNT (1000000)
+#define SLOT_UID_LO (2000000)
+#define SLOT_UID_HI (SLOT_UID_LO + SLOT_COUNT)
 
 #define SLOT_OK_UID(uid) ((SLOT_UID_LO <= uid) && (uid < SLOT_UID_HI))
 #define SLOT_OK(slot) ((0 <= slot) && (slot < SLOT_COUNT))
-#define SLOT_OK_NAME(name) (strlen(name) == 5 && name[0] == 's' && isdigit(name[1]) && isdigit(name[2]) && isdigit(name[3]) && isdigit(name[4]))
+#define SLOT_OK_NAME(name) \
+	(strlen(name) == 7 && \
+	 name[0] == 's' && \
+	 isdigit(name[1]) && \
+	 isdigit(name[2]) && \
+	 isdigit(name[3]) && \
+	 isdigit(name[4]) && \
+	 isdigit(name[5]) && \
+	 isdigit(name[6]))
 #define SLOT_TO_UID(slot) (SLOT_UID_LO + slot)
 #define SLOT_OF_UID(uid) (uid - SLOT_UID_LO)
 
@@ -70,8 +78,8 @@ enum nss_status slots_fill_passwd(struct passwd *pwbuf, char *buf, size_t buflen
         return NSS_STATUS_NOTFOUND;
     }
 
-    sprintf(name_buf, "s%04d", slot_id);
-    sprintf(dir_buf, "/srv/%04d/", slot_id);
+    sprintf(name_buf, "s%06d", slot_id);
+    sprintf(dir_buf, "/srv/%03d/%03d/", slot_id / 1000, slot_id % 1000);
 
     entry.pw_uid = SLOT_TO_UID(slot_id);
     entry.pw_gid = SLOT_TO_UID(slot_id);
@@ -108,7 +116,7 @@ enum nss_status slots_fill_group(struct group *grbuf, char *buf, size_t buflen, 
         return NSS_STATUS_NOTFOUND;
     }
 
-    int name_length = 6;
+    int name_length = 8;
     int pw_length = 2;
     int mem_length = sizeof(char*);
     int total_length = name_length + pw_length + mem_length;
@@ -120,7 +128,7 @@ enum nss_status slots_fill_group(struct group *grbuf, char *buf, size_t buflen, 
 
     grbuf->gr_gid = SLOT_TO_UID(slot_id);
 
-    sprintf(buf, "s%04d", slot_id);
+    sprintf(buf, "s%06d", slot_id);
     grbuf->gr_name = buf;
     buf += name_length;
 
