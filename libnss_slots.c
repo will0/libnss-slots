@@ -12,7 +12,7 @@
 #define SLOT_UID_LO (0x10000)
 #define SLOT_UID_HI (SLOT_UID_LO + SLOT_COUNT)
 
-#define IS_SLOT_DIGIT(c) (c >= 0 && c <= 9 || c >= 'A' && c <= 'F')
+#define IS_SLOT_DIGIT(c) ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
 
 #define SLOT_OK_UID(uid) ((SLOT_UID_LO <= uid) && (uid < SLOT_UID_HI))
 #define SLOT_OK(slot) ((0 <= slot) && (slot < SLOT_COUNT))
@@ -80,7 +80,7 @@ enum nss_status slots_fill_passwd(struct passwd *pwbuf, char *buf, size_t buflen
     }
 
     sprintf(name_buf, "s%04X", slot_id);
-    sprintf(dir_buf, "/srv/%02X/%02X/", slot_id >> 16, slot_id & 0xff);
+    sprintf(dir_buf, "/srv/%02X/%02X/", slot_id >> 8, slot_id & 0xff);
 
     entry.pw_uid = SLOT_TO_UID(slot_id);
     entry.pw_gid = SLOT_TO_UID(slot_id);
@@ -103,7 +103,7 @@ enum nss_status _nss_slots_getpwnam_r(const char *name, struct passwd *pwbuf, ch
     if (!SLOT_OK_NAME(name)) {
         return NSS_STATUS_NOTFOUND;
     }
-    int slot_id = strtol(name + 1, NULL, 10);
+    int slot_id = strtol(name + 1, NULL, 0x10);
     return slots_fill_passwd(pwbuf, buf, buflen, slot_id, errnop);
 }
 
@@ -154,6 +154,6 @@ enum nss_status _nss_slots_getgrnam_r(const char *name, struct group *grbuf, cha
     if (!SLOT_OK_NAME(name)) {
         return NSS_STATUS_NOTFOUND;
     }
-    int slot_id = strtol(name + 1, NULL, 10);
+    int slot_id = strtol(name + 1, NULL, 0x10);
     return slots_fill_group(grbuf, buf, buflen, slot_id, errnop);
 }
