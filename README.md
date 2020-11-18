@@ -1,6 +1,6 @@
 # libnss-slots
 
-map s0000-s9999 to uid/gid 20000-29999
+map s0000-sFFFF to uid/gid 65536-131072
 
 # License
 
